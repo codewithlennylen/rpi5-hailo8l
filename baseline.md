@@ -1,9 +1,4 @@
-# Raspberry Pi 5 AI HAT+ Inference Benchmark
-
-
-
-
-# Benchmark Setup
+# Baseline Benchmark Setup
 
 ## Hardware Summary
 
@@ -30,6 +25,3 @@ Expected output:
 
 
 ## Software Summary
-
-1. Download pre-compiled models from Hailo Model Zoo
-2. 
