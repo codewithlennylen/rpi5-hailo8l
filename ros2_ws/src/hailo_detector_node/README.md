@@ -1,10 +1,9 @@
 # hailo_yolo_detector
 
-Minimal ROS2 node that runs object detection on a Hailo-8/8L NPU using
+Minimal ROS2 node that runs object detection on a Hailo-8L NPU using
 HailoRT's C++ Async Infer API directly — **no TAPPAS, no GStreamer, no
 Python bindings**. This is intentional: it collapses the dependency chain
-down to just `libhailort` + a `.hef` model, matching the "skip TAPPAS"
-approach discussed for a ROS2 Jazzy / Ubuntu 24.04 setup.
+down to just `libhailort` + a `.hef` model.
 
 ## Prerequisites
 
@@ -13,7 +12,7 @@ approach discussed for a ROS2 Jazzy / Ubuntu 24.04 setup.
   (`hailortcli fw-control identify` should succeed with no version errors).
 - HailoRT headers available (should come with the `hailort` apt package;
   confirm `/usr/include/hailo/hailort.hpp` exists).
-- A compiled `.hef` model (e.g. `yolov8s.hef` from Hailo Model Zoo).
+- A compiled `.hef` model (e.g. `yolov8s.hef` the one used here was downloaded from Hailo Model Zoo).
 - ROS2 packages: `ros-jazzy-cv-bridge`, `ros-jazzy-vision-msgs`,
   `ros-jazzy-image-transport`.
 
@@ -23,13 +22,10 @@ sudo apt install ros-jazzy-cv-bridge ros-jazzy-vision-msgs ros-jazzy-image-trans
 
 ## Build
 
-Drop this package into a colcon workspace:
 
 ```bash
-mkdir -p ~/ros2_ws/src
-cp -r hailo_yolo_detector ~/ros2_ws/src/
 cd ~/ros2_ws
-colcon build --packages-select hailo_yolo_detector
+colcon build
 source install/setup.bash
 ```
 
@@ -51,9 +47,9 @@ ros2 topic echo /hailo/detections
 
 ## Before this will work correctly for YOUR model
 
-This is a working skeleton, not a drop-in-and-done solution — object
-detection postprocessing is genuinely model-specific. Two things to verify
-against your actual `.hef` before trusting the output:
+This is a working skeleton, not a versatile solution:object 
+detection postprocessing is model-specific. Two things to verify
+against your actual `.hef`:
 
 ```bash
 hailortcli parse-hef /path/to/yolov8s.hef
@@ -70,18 +66,10 @@ hailortcli parse-hef /path/to/yolov8s.hef
 
 ## Benchmarking against the CPU-only baseline
 
-For the "quantify the Hailo advantage" comparison: run
+Run:
+
 `ros2 topic hz /hailo/detections` here, and compare against the same
 image topic → CPU-only inference (e.g. ONNX Runtime or Ultralytics on the
 Pi 5 CPU) → a matching detections topic. That gives you an apples-to-apples
-end-to-end FPS number, as opposed to `hailortcli run --measure-fps`, which
-only measures raw chip throughput without camera/preprocessing/ROS2 overhead.
-
-## Known simplifications / follow-ups
-
-- Inference is synchronous (blocks per frame). For higher throughput,
-  pipeline it: submit frame N+1's async job while decoding frame N's result.
-- No letterbox padding in preprocessing — add it if your model was
-  trained/exported expecting aspect-ratio-preserving resize.
-- Bindings are recreated every frame for clarity; reusing a small pool of
-  pre-allocated bindings would reduce per-frame overhead further.
+end-to-end FPS number, as opposed to `hailortcli benchmark`, which
+only measures raw chip throughput without the ROS2 & pre-processing overhead.

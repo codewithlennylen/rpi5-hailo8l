@@ -12,7 +12,7 @@ find_package(sensor_msgs REQUIRED)
 find_package(vision_msgs REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(image_transport REQUIRED)
-find_package(OpenCV REQUIRED)
+#find_package(OpenCV REQUIRED)
 
 # --- HailoRT ---
 # The 'hailort' apt package installs headers under /usr/include/hailo and
@@ -43,7 +43,7 @@ ament_target_dependencies(hailo_detector_node
   vision_msgs
   cv_bridge
   image_transport
-  OpenCV
+#  OpenCV
 )
 target_link_libraries(hailo_detector_node ${HAILORT_LIB})
 

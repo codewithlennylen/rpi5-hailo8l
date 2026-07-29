@@ -1,20 +1,22 @@
 // hailo_detector_node.cpp
 //
 // ROS2 node: subscribes to a sensor_msgs/Image topic, runs object detection
-// on a Hailo-8/8L NPU via HailoRT's C++ Async Infer API, publishes results
+// on a Hailo-8L NPU via HailoRT's C++ Async Infer API, publishes results
 // as vision_msgs/Detection2DArray.
 //
-// Deliberately does NOT use TAPPAS or GStreamer -- this talks to libhailort
+// Deliberately does NOT use TAPPAS or GStreamer: this talks to libhailort
 // directly, the same way you'd use any other inference library from C++.
+// Getting TAPPAS to work was too painful! I'll probably won't try that again :(
 //
 // ---------------------------------------------------------------------------
 // IMPORTANT -- things you WILL need to adjust for your exact model/version:
 // ---------------------------------------------------------------------------
 // 1. HailoRT's C++ API has shifted slightly across releases (this targets the
 //    Async Infer API present in the 4.x line, which should cover 4.23/4.24).
+//    (I am using hailort v4.24.0)
 //    If a method name here doesn't match, check /usr/include/hailo/hailort.hpp
-//    on your system -- that header is the ground truth for your installed
-//    version, not this file.
+//    on your system (that header is the ground truth for your installed
+//    version, not this file.) ONLY THE PARANOID SURVIVE
 //
 // 2. decode_detections() below assumes the .hef has NMS baked in on-chip
 //    (HAILO_FORMAT_ORDER_HAILO_NMS_BY_CLASS), which is how Hailo Model Zoo
@@ -22,7 +24,8 @@
 //        hailortcli parse-hef your_model.hef
 //    and check the output stream's format order. If it's NOT NMS-by-class
 //    (i.e. you get raw tensor output instead), you need a different decode
-//    step (anchor decoding + your own NMS) -- ask me and I'll help adapt this.
+//    step (anchor decoding + your own NMS) The model that I have included in 
+//    the models directory is tested and works
 //
 // 3. Input preprocessing (resize/letterbox/normalization/quantization)
 //    assumes a single UINT8 RGB input, which is the common default for
@@ -81,7 +84,7 @@ private:
   // ---------------------------------------------------------------------
   // HailoRT setup: create device, load HEF, configure the model, allocate
   // bindings once at startup so the hot path (image_callback) does no
-  // allocation -- important if you care about steady-state FPS.
+  // allocation
   // ---------------------------------------------------------------------
   void init_hailo() {
     auto vdevice_exp = VDevice::create();
@@ -104,8 +107,7 @@ private:
     }
     configured_model_ = std::make_shared<ConfiguredInferModel>(configured_exp.release());
 
-    // Cache input/output stream info -- you'll see these names/shapes
-    // printed by `hailortcli parse-hef`.
+    // Cache input/output stream info: you'll see these names/shapes printed by `hailortcli parse-hef yolov8s.hef`.
     input_name_ = infer_model_->get_input_names()[0];
     auto in_shape = infer_model_->input(input_name_)->shape();
     input_h_ = in_shape.height;
@@ -121,10 +123,8 @@ private:
   }
 
   // ---------------------------------------------------------------------
-  // Preprocess: letterbox-resize the incoming frame to the model's input
-  // dimensions and convert to the expected layout. Adjust color conversion
-  // / quantization here if your model expects something other than
-  // straight UINT8 RGB.
+  // Preprocess: letterbox-resize the incoming frame to the model's input dimensions and convert to the expected layout. Adjust color conversion/quantization here
+  // if your model expects something other than straight UINT8 RGB.
   // ---------------------------------------------------------------------
   cv::Mat preprocess(const cv::Mat &bgr_frame) {
     cv::Mat rgb;
@@ -132,18 +132,14 @@ private:
 
     cv::Mat resized;
     cv::resize(rgb, resized, cv::Size(input_w_, input_h_), 0, 0, cv::INTER_LINEAR);
-    // NOTE: this is a plain resize, not a letterbox (no aspect-ratio padding).
-    // If your model was trained/exported expecting letterboxing, replace this
-    // with a pad-to-aspect-ratio resize and remember to undo the padding
-    // offset when mapping boxes back to the original frame in decode step.
+    // NOTE: this is a plain resize, not a letterbox (no aspect-ratio padding).If your model was trained/exported expecting letterboxing, replace this with a pad-to-aspect-ratio resize
+    // and remember to undo the padding offset when mapping boxes back to the original frame in decode step.
     return resized;
   }
 
   // ---------------------------------------------------------------------
-  // Run one inference synchronously and block until done. For max
-  // throughput you'd pipeline this (submit next frame's async job while
-  // parsing the previous result) -- left as a follow-up once correctness
-  // is confirmed.
+  // Run one inference synchronously and block until done. For max throughput you'd pipeline this (submit next frame's async job while parsing the previous result)
+  // Good first issue?
   // ---------------------------------------------------------------------
   std::vector<Detection> run_inference(const cv::Mat &input_frame) {
     auto bindings_exp = configured_model_->create_bindings();
@@ -158,7 +154,7 @@ private:
         MemoryView(const_cast<uint8_t *>(input_frame.data),
                    input_frame.total() * input_frame.elemSize()));
 
-    // Output buffers -- one per output stream, sized per stream's frame size
+    // Output buffers: one per output stream, sized per stream's frame size
     std::vector<std::vector<uint8_t>> output_buffers(output_names_.size());
     for (size_t i = 0; i < output_names_.size(); ++i) {
       size_t frame_size = infer_model_->output(output_names_[i])->get_frame_size();
@@ -185,11 +181,8 @@ private:
   //   For each class:
   //     [uint32 num_boxes]
   //     [num_boxes x (ymin, xmin, ymax, xmax, score) as float32, normalized]
-  //
-  // THIS IS THE PART MOST LIKELY TO NEED ADJUSTMENT for your specific
-  // model export -- if scores/boxes come out wrong, this layout assumption
-  // is the first place to check against `hailortcli parse-hef` output.
   // ---------------------------------------------------------------------
+  
   std::vector<Detection> decode_detections(const std::vector<std::vector<uint8_t>> &output_buffers) {
     std::vector<Detection> detections;
     if (output_buffers.empty()) return detections;
