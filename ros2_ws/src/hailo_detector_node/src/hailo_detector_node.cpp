@@ -37,7 +37,7 @@
 #include <vision_msgs/msg/detection2_d_array.hpp>
 #include <vision_msgs/msg/detection2_d.hpp>
 #include <vision_msgs/msg/object_hypothesis_with_pose.hpp>
-#include <cv_bridge/cv_bridge.h>
+#include <cv_bridge/cv_bridge.hpp>
 #include <opencv2/opencv.hpp>
 
 #include <hailo/hailort.hpp>
@@ -261,7 +261,7 @@ private:
   double score_threshold_;
 
   std::unique_ptr<VDevice> vdevice_;
-  std::unique_ptr<InferModel> infer_model_;
+  std::shared_ptr<InferModel> infer_model_;
   std::shared_ptr<ConfiguredInferModel> configured_model_;
 
   std::string input_name_;
