@@ -2673,11 +2673,15 @@ name = "rpi5-hailo8l"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "onnxruntime" },
     { name = "ultralytics", extra = ["export"] },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "ultralytics", extras = ["export"], specifier = ">=8.4.112" }]
+requires-dist = [
+    { name = "onnxruntime", specifier = ">=1.28.0" },
+    { name = "ultralytics", extras = ["export"], specifier = ">=8.4.112" },
+]
 
 [[package]]
 name = "safetensors"

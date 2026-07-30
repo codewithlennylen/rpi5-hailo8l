@@ -41,7 +41,7 @@ import cv2
 import rclpy
 from cv_bridge import CvBridge
 from rclpy.node import Node
-from rclpy.qos import HistoryPolicy, QoSProfile, ReliabilityPolicy
+from rclpy.qos import qos_profile_sensor_data
 from sensor_msgs.msg import Image
 from vision_msgs.msg import Detection2DArray
 
@@ -88,13 +88,9 @@ class DatasetBenchmarkNode(Node):
 
         self.bridge = CvBridge()
 
-        qos = QoSProfile(depth=1,
-                          reliability=ReliabilityPolicy.RELIABLE,
-                          history=HistoryPolicy.KEEP_LAST)
-
-        self.image_pub = self.create_publisher(Image, self.image_topic, qos)
+        self.image_pub = self.create_publisher(Image, self.image_topic, qos_profile_sensor_data)
         self.detection_sub = self.create_subscription(
-            Detection2DArray, self.detections_topic, self._on_detection, qos)
+            Detection2DArray, self.detections_topic, self._on_detection, qos_profile_sensor_data)
 
         self._awaiting_frame_id = None
         self._t_publish = None
