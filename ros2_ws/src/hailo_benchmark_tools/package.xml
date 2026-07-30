@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>hailo_benchmark_tools</name>
+  <version>0.1.0</version>
+  <description>
+    Dataset-driven benchmarking tool for object detection ROS2 nodes (e.g.
+    hailo_yolo_detector). Publishes images from a local folder one at a time,
+    waits for the corresponding Detection2DArray response, and reports
+    per-frame latency and effective FPS. no camera required. Works against
+    any detector node's image-in/Detection2DArray-out topics, so the same
+    dataset can be pointed at a Hailo pipeline or a CPU-only pipeline for a
+    direct comparison.
+  </description>
+  <maintainer email="codewithlennylen254@gmail.com">Lenny Ng'ang'a</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_python</buildtool_depend>
+
+  <depend>rclpy</depend>
+  <depend>sensor_msgs</depend>
+  <depend>vision_msgs</depend>
+  <depend>cv_bridge</depend>
+
+  <exec_depend>python3-opencv</exec_depend>
+
+  <test_depend>ament_copyright</test_depend>
+  <test_depend>ament_flake8</test_depend>
+  <test_depend>ament_pep257</test_depend>
+  <test_depend>python3-pytest</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>
